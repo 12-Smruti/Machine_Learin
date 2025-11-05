@@ -1,0 +1,65 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import warnings 
+#We do not want to see warnings
+warnings.filterwarnings("ignore") 
+
+df=pd.read_csv('uber.csv')
+df.head()
+df.info()
+df.isna().sum()
+df.drop(["Unnamed: 0", "key"], axis = 1, inplace = True)
+df.describe()
+df["pickup_datetime"] = pd.to_datetime(df["pickup_datetime"], errors="coerce")
+
+df['pickup_datetime'].isna().sum()
+df.info()
+import matplotlib.pyplot as plt
+plt.boxplot(df['fare_amount'])
+
+def find_outliers(df):
+  q1=df.quantile(0.25)
+  q3=df.quantile(0.75)
+  IQR=q3-q1
+  outliers=df[(df < q1-1.5 *IQR)| (df > q3+1.5* IQR)]
+  return outliers
+
+fare_amount_outliers = find_outliers(df['fare_amount'])
+fare_amount_outliers
+
+len(fare_amount_outliers)
+fare_amount_outliers = find_outliers(df["fare_amount"])
+print("Number of Outlier : " + str(len(fare_amount_outliers)))
+print("Max Outlier : " + str(fare_amount_outliers.max()))
+print("Min Outlier : " + str(fare_amount_outliers.min()))
+
+# Drop the Outliers
+q_low = df["fare_amount"].quantile(0.25)
+q_hi  = df["fare_amount"].quantile(0.75)
+iqr = q_hi - q_low
+df = df[(df["fare_amount"] < q_hi+1.5*iqr) & (df["fare_amount"] > q_low-1.5*iqr)]
+
+df.drop(df[df['fare_amount'] < 0].index, inplace = True)
+df.info()
+# Co-relation Heatmap
+import seaborn as sns
+sns.heatmap(df.corr(), annot = True)
+
+x = df.drop("fare_amount", axis = 1) # Independent Set
+y = df['fare_amount'] # Target Variable
+from sklearn.model_selection import train_test_split
+
+
+x = df.drop("fare_amount", axis = 1)
+#And y as target variable
+y = df['fare_amount']
+#x['pickup_datetime'] = pd.to_numeric(pd.to_datetime(x['pickup_datetime']))
+# x = x.loc[:, x.columns.str.contains('^Unnamed')] # Remove this line
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 1)
+
+from sklearn.linear_model import LinearRegression
+
+lrmodel = LinearRegression()
+lrmodel.fit(x_train, y_train)
+predict = lrmodel.predict(x_test)
